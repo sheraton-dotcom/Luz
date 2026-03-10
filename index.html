@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Luz de Sueño</title>
+<link rel="manifest" href="manifest.json">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="Luz Sueño">
+<meta name="theme-color" content="#000000">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<style>
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+html, body {
+  width:100%; height:100%;
+  overflow:hidden;
+  background:#000;
+  font-family: system-ui, -apple-system, sans-serif;
+  touch-action:manipulation;
+  -webkit-tap-highlight-color:transparent;
+  user-select:none;
+  -webkit-user-select:none;
+}
+
+#light {
+  position:fixed; inset:0; z-index:0;
+  transition: background 1.5s ease;
+}
+#light.breathe { animation: breathe 7s ease-in-out infinite; }
+@keyframes breathe { 0%,100%{opacity:.70} 50%{opacity:1} }
+
+#overlay {
+  position:fixed; inset:0; z-index:10;
+  display:flex; flex-direction:column;
+  align-items:center; justify-content:space-between;
+  padding: 36px 24px 44px;
+  transition: opacity .6s ease;
+}
+#overlay.hidden { opacity:0; pointer-events:none; }
+
+.title { text-align:center; }
+.title h1 {
+  font-size: clamp(1.6rem,4.5vw,2.8rem);
+  font-weight:200; letter-spacing:.18em;
+  color:rgba(255,215,160,.82);
+  text-shadow:0 0 48px rgba(255,110,30,.35);
+}
+.title p {
+  font-size:clamp(.55rem,1.5vw,.7rem);
+  letter-spacing:.28em; text-transform:uppercase;
+  color:rgba(255,185,100,.35); margin-top:5px;
+}
+
+.middle {
+  display:flex; flex-direction:column;
+  align-items:center; gap:22px;
+  width:100%; max-width:600px;
+}
+
+.lbl {
+  font-size:.58rem; letter-spacing:.25em; text-transform:uppercase;
+  color:rgba(255,185,100,.32); text-align:center; margin-bottom:-14px;
+}
+
+/* COLOR BUTTONS */
+.color-row { display:flex; gap:32px; align-items:center; padding:12px 0 28px; }
+.cbtn {
+  position:relative; width:58px; height:58px; border-radius:50%;
+  cursor:pointer; outline:none;
+  transition: transform .3s cubic-bezier(.34,1.56,.64,1), box-shadow .3s;
+}
+.cbtn::before {
+  content:''; position:absolute; inset:-5px; border-radius:50%;
+  border:2.5px solid transparent;
+  transition: border-color .3s, box-shadow .3s; pointer-events:none;
+}
+.cbtn.active { transform:scale(1.25); box-shadow:0 0 32px rgba(255,150,40,.7); }
+.cbtn.active::before { border-color:rgba(255,230,150,.95); box-shadow:0 0 12px rgba(255,200,80,.5); }
+.cbtn::after {
+  content: attr(data-label); position:absolute;
+  bottom:-22px; left:50%; transform:translateX(-50%);
+  font-size:.5rem; letter-spacing:.12em; text-transform:uppercase;
+  color:rgba(255,195,110,.35); white-space:nowrap;
+  transition:color .3s; pointer-events:none;
+}
+.cbtn.active::after { color:rgba(255,230,155,.88); }
+#c-red    { background:#C8180A; }
+#c-orange { background:#C84A00; }
+#c-amber  { background:#A85800; }
+
+/* SLIDERS */
+.slider-wrap { width:100%; }
+.sl-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+.sl-header span:first-child { font-size:.6rem; letter-spacing:.22em; text-transform:uppercase; color:rgba(255,195,110,.42); }
+.sl-val { font-size:.75rem; font-weight:300; color:rgba(255,225,155,.65); }
+input[type=range] {
+  -webkit-appearance:none; width:100%; height:4px; border-radius:2px;
+  background:rgba(255,180,80,.15); outline:none; cursor:pointer;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance:none; width:32px; height:32px; border-radius:50%;
+  background:radial-gradient(circle at 38% 36%, #FFE8A0 0%, #D07018 100%);
+  box-shadow:0 0 14px rgba(255,140,30,.75); cursor:pointer;
+}
+
+/* TOGGLE BUTTONS */
+.toggle-row { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; }
+.tbtn {
+  display:flex; align-items:center; gap:9px; padding:13px 20px;
+  border-radius:40px; border:1.5px solid rgba(255,175,80,.15);
+  background:rgba(0,0,0,.38); backdrop-filter:blur(8px);
+  color:rgba(255,190,100,.42);
+  font-size:.68rem; letter-spacing:.12em; text-transform:uppercase;
+  cursor:pointer; touch-action:manipulation;
+  transition: background .25s, border-color .25s, color .25s, box-shadow .25s, transform .15s;
+}
+.tbtn:active { transform:scale(.93); }
+.dot {
+  width:9px; height:9px; border-radius:50%;
+  background:rgba(255,185,90,.15); border:1.5px solid rgba(255,185,90,.2);
+  flex-shrink:0; transition: background .25s, border-color .25s, box-shadow .25s;
+}
+.tbtn.on {
+  background:rgba(140,42,0,.45); border-color:rgba(255,165,55,.72);
+  color:rgba(255,242,190,1);
+  box-shadow:0 0 20px rgba(255,110,10,.25), inset 0 0 14px rgba(170,50,0,.15);
+}
+.tbtn.on .dot {
+  background:#FFB230; border-color:#FFD878;
+  box-shadow:0 0 6px #FFB230, 0 0 16px rgba(255,170,30,.55);
+}
+
+/* TIMER OPTIONS */
+.timer-opts { display:none; gap:8px; flex-wrap:wrap; justify-content:center; }
+.topt {
+  padding:10px 17px; border-radius:30px;
+  border:1.5px solid rgba(255,175,80,.15); background:rgba(0,0,0,.3);
+  color:rgba(255,190,100,.42); font-size:.65rem; letter-spacing:.12em;
+  cursor:pointer; touch-action:manipulation;
+  transition: background .22s, border-color .22s, color .22s, box-shadow .22s, transform .15s;
+}
+.topt:active { transform:scale(.93); }
+.topt.on {
+  background:rgba(140,42,0,.42); border-color:rgba(255,165,55,.72);
+  color:rgba(255,242,190,1); box-shadow:0 0 14px rgba(255,110,10,.22);
+}
+
+/* SOUND BUTTONS — large touch targets, card style */
+.sound-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; width:100%; }
+.sbtn {
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:5px; padding:14px 6px; border-radius:16px;
+  border:1.5px solid rgba(255,175,80,.13); background:rgba(0,0,0,.35);
+  backdrop-filter:blur(6px); cursor:pointer; touch-action:manipulation;
+  min-height:72px;
+  transition: background .22s, border-color .22s, box-shadow .22s, transform .15s;
+}
+.sbtn:active { transform:scale(.91); }
+.sicon { font-size:1.4rem; }
+.stxt {
+  font-size:.56rem; letter-spacing:.1em; text-transform:uppercase;
+  color:rgba(255,185,90,.42); text-align:center; line-height:1.3;
+  transition:color .22s;
+}
+.sbtn.on {
+  background:rgba(130,38,0,.5); border-color:rgba(255,160,50,.72);
+  box-shadow:0 0 22px rgba(255,110,10,.3), inset 0 0 12px rgba(160,45,0,.2);
+}
+.sbtn.on .stxt { color:rgba(255,240,180,1); }
+
+/* BOTTOM BAR */
+.bottom-bar { display:flex; gap:18px; align-items:center; }
+.ibtn {
+  width:52px; height:52px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center; font-size:1.25rem;
+  border:1.5px solid rgba(255,175,80,.15); background:rgba(0,0,0,.35);
+  backdrop-filter:blur(8px); cursor:pointer; touch-action:manipulation;
+  color:rgba(255,200,120,.5);
+  transition: background .22s, border-color .22s, box-shadow .22s, transform .15s;
+}
+.ibtn:active { transform:scale(.9); }
+.ibtn.on {
+  background:rgba(130,38,0,.45); border-color:rgba(255,160,50,.7);
+  color:rgba(255,240,180,1); box-shadow:0 0 18px rgba(255,110,10,.25);
+}
+
+#tapzone { position:fixed; inset:0; z-index:5; pointer-events:none; }
+#tapzone.active { pointer-events:auto; }
+
+#hint {
+  position:fixed; bottom:20px; left:50%; transform:translateX(-50%);
+  font-size:.58rem; letter-spacing:.22em; text-transform:uppercase;
+  color:rgba(255,185,90,.22); pointer-events:none; opacity:0; transition:opacity .5s;
+}
+
+#timer-disp {
+  position:fixed; bottom:22px; left:50%; transform:translateX(-50%);
+  font-size:1.55rem; font-weight:200; letter-spacing:.1em;
+  color:rgba(255,200,120,.38); pointer-events:none; display:none; z-index:20;
+}
+
+#fade {
+  position:fixed; inset:0; z-index:999; background:#000;
+  opacity:0; pointer-events:none; transition:opacity 30s ease;
+}
+</style>
+</head>
+<body>
+
+<div id="fade"></div>
+<div id="light"></div>
+<div id="tapzone"></div>
+
+<div id="overlay">
+  <div class="title">
+    <h1>Luz de Sueño</h1>
+    <p>Rojo 670 nm · Inducción al descanso</p>
+  </div>
+
+  <div class="middle">
+    <div class="lbl">Color de luz</div>
+    <div class="color-row">
+      <div class="cbtn active" id="c-red"    data-color="red"    data-label="Rojo"></div>
+      <div class="cbtn"        id="c-orange" data-color="orange" data-label="Naranja"></div>
+      <div class="cbtn"        id="c-amber"  data-color="amber"  data-label="Ámbar"></div>
+    </div>
+
+    <div class="slider-wrap">
+      <div class="sl-header">
+        <span>Intensidad</span>
+        <span class="sl-val" id="bright-val">70%</span>
+      </div>
+      <input type="range" id="brightness" min="5" max="100" value="70">
+    </div>
+
+    <div class="toggle-row">
+      <button class="tbtn" id="btn-breathe"><span class="dot"></span>Respiración</button>
+      <button class="tbtn" id="btn-dim"><span class="dot"></span>Atenuar</button>
+      <button class="tbtn" id="btn-timer"><span class="dot"></span>Temporizador</button>
+    </div>
+
+    <div class="timer-opts" id="timer-opts">
+      <button class="topt" data-min="15">15 min</button>
+      <button class="topt" data-min="30">30 min</button>
+      <button class="topt" data-min="45">45 min</button>
+      <button class="topt" data-min="60">60 min</button>
+      <button class="topt" data-min="90">90 min</button>
+    </div>
+
+    <div class="lbl">Sonidos científicos para dormir</div>
+    <div class="sound-grid">
+      <button class="sbtn" data-sound="pink">
+        <span class="sicon">🩷</span><span class="stxt">Ruido<br>Rosa</span>
+      </button>
+      <button class="sbtn" data-sound="brown">
+        <span class="sicon">🌊</span><span class="stxt">Ruido<br>Marrón</span>
+      </button>
+      <button class="sbtn" data-sound="delta">
+        <span class="sicon">🧠</span><span class="stxt">Binaural<br>Delta 2Hz</span>
+      </button>
+      <button class="sbtn" data-sound="theta">
+        <span class="sicon">✨</span><span class="stxt">Binaural<br>Theta 6Hz</span>
+      </button>
+      <button class="sbtn" data-sound="432hz">
+        <span class="sicon">🔔</span><span class="stxt">Armonía<br>432 Hz</span>
+      </button>
+      <button class="sbtn" data-sound="cosmos">
+        <span class="sicon">🌌</span><span class="stxt">Cosmos<br>Profundo</span>
+      </button>
+    </div>
+
+    <div class="slider-wrap">
+      <div class="sl-header">
+        <span>Volumen</span>
+        <span class="sl-val" id="vol-val">40%</span>
+      </div>
+      <input type="range" id="volume" min="0" max="100" value="40">
+    </div>
+  </div>
+
+  <div class="bottom-bar">
+    <button class="ibtn" id="btn-fs">⛶</button>
+    <button class="ibtn" id="btn-lock">🔓</button>
+    <button class="ibtn" id="btn-hide">👁</button>
+  </div>
+</div>
+
+<div id="hint">toca para mostrar</div>
+<div id="timer-disp"></div>
+
+<script>
+const S = {
+  color:'red', brightness:70, breathe:false, dim:false,
+  timer:false, timerEnd:null, timerInterval:null, dimInterval:null,
+  sound:null, volume:40, uiVisible:true,
+  audioCtx:null, sources:[], oscs:[], gainNodes:[], wakeLock:null,
+};
+
+const COLORS = { red:[200,24,10], orange:[200,74,0], amber:[168,88,0] };
+
+// ── LIGHT ──
+function applyLight() {
+  const [r,g,b] = COLORS[S.color];
+  const k = S.brightness/100;
+  document.getElementById('light').style.background =
+    `rgb(${Math.round(r*k)},${Math.round(g*k)},${Math.round(b*k)})`;
+}
+
+document.querySelectorAll('.cbtn').forEach(btn => {
+  btn.addEventListener('pointerdown', e => {
+    e.preventDefault();
+    document.querySelectorAll('.cbtn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    S.color = btn.dataset.color;
+    applyLight();
+  });
+});
+
+document.getElementById('brightness').addEventListener('input', e => {
+  S.brightness = +e.target.value;
+  document.getElementById('bright-val').textContent = S.brightness+'%';
+  applyLight();
+});
+
+// ── TOGGLES ──
+function tog(btn, on) { btn.classList.toggle('on', on); }
+
+document.getElementById('btn-breathe').addEventListener('click', () => {
+  S.breathe = !S.breathe;
+  tog(document.getElementById('btn-breathe'), S.breathe);
+  document.getElementById('light').classList.toggle('breathe', S.breathe);
+});
+
+document.getElementById('btn-dim').addEventListener('click', () => {
+  S.dim = !S.dim;
+  tog(document.getElementById('btn-dim'), S.dim);
+  clearInterval(S.dimInterval);
+  if (S.dim) {
+    const start=S.brightness, t0=Date.now(), dur=20*60*1000;
+    S.dimInterval = setInterval(() => {
+      const f = Math.min((Date.now()-t0)/dur, 1);
+      S.brightness = Math.round(start - (start-5)*f);
+      document.getElementById('brightness').value = S.brightness;
+      document.getElementById('bright-val').textContent = S.brightness+'%';
+      applyLight();
+      if (f>=1) clearInterval(S.dimInterval);
+    }, 4000);
+  }
+});
+
+document.getElementById('btn-timer').addEventListener('click', () => {
+  S.timer = !S.timer;
+  tog(document.getElementById('btn-timer'), S.timer);
+  document.getElementById('timer-opts').style.display = S.timer ? 'flex' : 'none';
+  if (!S.timer) cancelTimer();
+});
+
+document.querySelectorAll('.topt').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.topt').forEach(b => b.classList.remove('on'));
+    btn.classList.add('on');
+    startTimer(+btn.dataset.min);
+  });
+});
+
+function startTimer(min) {
+  cancelTimer();
+  S.timerEnd = Date.now() + min*60000;
+  document.getElementById('timer-disp').style.display = 'block';
+  S.timerInterval = setInterval(tickTimer, 1000);
+  tickTimer();
+}
+function cancelTimer() {
+  clearInterval(S.timerInterval);
+  document.getElementById('timer-disp').style.display = 'none';
+}
+function tickTimer() {
+  const left = S.timerEnd - Date.now();
+  if (left <= 0) {
+    cancelTimer(); stopAllSound();
+    const fd = document.getElementById('fade');
+    fd.style.pointerEvents = 'auto';
+    requestAnimationFrame(() => { fd.style.opacity = 1; });
+    return;
+  }
+  const m = Math.floor(left/60000), s = Math.floor((left%60000)/1000);
+  document.getElementById('timer-disp').textContent =
+    String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+}
+
+// ── AUDIO ──
+function ctx() {
+  if (!S.audioCtx) S.audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+  if (S.audioCtx.state==='suspended') S.audioCtx.resume();
+  return S.audioCtx;
+}
+
+function stopAllSound() {
+  S.sources.forEach(n=>{try{n.stop(0);}catch(e){}});
+  S.oscs.forEach(n=>{try{n.stop(0);}catch(e){}});
+  S.gainNodes.forEach(g=>{try{g.gain.setTargetAtTime(0,S.audioCtx.currentTime,.4);}catch(e){}});
+  S.sources=[]; S.oscs=[]; S.gainNodes=[]; S.sound=null;
+  document.querySelectorAll('.sbtn').forEach(b=>b.classList.remove('on'));
+}
+
+function masterOut(c) {
+  const g = c.createGain();
+  g.gain.setValueAtTime(0, c.currentTime);
+  g.gain.linearRampToValueAtTime(S.volume/100*.72, c.currentTime+3.5);
+  g.connect(c.destination);
+  S.gainNodes.push(g);
+  return g;
+}
+
+// Pink noise (Paul Kellett algorithm)
+function pinkBuf(c, s) {
+  const n=c.sampleRate*s, buf=c.createBuffer(1,n,c.sampleRate), d=buf.getChannelData(0);
+  let b0=0,b1=0,b2=0,b3=0,b4=0,b5=0,b6=0;
+  for(let i=0;i<n;i++){
+    const w=Math.random()*2-1;
+    b0=.99886*b0+w*.0555179; b1=.99332*b1+w*.0750759;
+    b2=.96900*b2+w*.1538520; b3=.86650*b3+w*.3104856;
+    b4=.55000*b4+w*.5329522; b5=-.7616*b5-w*.0168980;
+    d[i]=(b0+b1+b2+b3+b4+b5+b6+w*.5362)*.115;
+    b6=w*.115926;
+  }
+  return buf;
+}
+
+// Brown (red) noise — Brownian motion
+function brownBuf(c, s) {
+  const n=c.sampleRate*s, buf=c.createBuffer(1,n,c.sampleRate), d=buf.getChannelData(0);
+  let last=0;
+  for(let i=0;i<n;i++){
+    const w=Math.random()*2-1;
+    last=(last+.02*w)/1.02;
+    d[i]=Math.max(-1,Math.min(1,last*3.5));
+  }
+  return buf;
+}
+
+function loop(c, buf, out, vol) {
+  const src=c.createBufferSource(); src.buffer=buf; src.loop=true;
+  const g=c.createGain(); g.gain.value=vol;
+  src.connect(g); g.connect(out); src.start(); S.sources.push(src);
+}
+
+function osc(c, freq, type, out, vol, lfoHz, lfoAmt) {
+  const o=c.createOscillator(); o.type=type; o.frequency.value=freq;
+  const g=c.createGain(); g.gain.value=vol;
+  if(lfoHz){
+    const lfo=c.createOscillator(); lfo.type='sine'; lfo.frequency.value=lfoHz;
+    const lg=c.createGain(); lg.gain.value=lfoAmt||freq*.002;
+    lfo.connect(lg); lg.connect(o.frequency); lfo.start(); S.oscs.push(lfo);
+  }
+  o.connect(g); g.connect(out); o.start(); S.oscs.push(o);
+}
+
+function oscAmplitude(c, freq, out, vol, lfoHz, lfoDepth, phaseDelay) {
+  const o=c.createOscillator(); o.type='sine'; o.frequency.value=freq;
+  const g=c.createGain(); g.gain.value=vol;
+  const lfo=c.createOscillator(); lfo.type='sine'; lfo.frequency.value=lfoHz;
+  const lg=c.createGain(); lg.gain.value=lfoDepth;
+  lfo.connect(lg); lg.connect(g.gain);
+  o.connect(g); g.connect(out);
+  lfo.start(c.currentTime+(phaseDelay||0)); o.start(); S.oscs.push(o,lfo);
+}
+
+// 1. PINK NOISE — 81.9% sleep success in clinical meta-analysis
+function playPink(c) {
+  const out=masterOut(c);
+  const lp=c.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=4200;
+  lp.connect(out);
+  loop(c, pinkBuf(c,18), lp, 1.0);
+}
+
+// 2. BROWN NOISE — deepest calming, masks all low-frequency disturbance
+function playBrown(c) {
+  const out=masterOut(c);
+  const lp=c.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=2200;
+  const shelf=c.createBiquadFilter(); shelf.type='lowshelf'; shelf.frequency.value=250; shelf.gain.value=4;
+  lp.connect(out); shelf.connect(lp);
+  loop(c, brownBuf(c,18), shelf, 1.0);
+}
+
+// 3. DELTA BINAURAL 2 Hz — L:100Hz R:102Hz → brain creates 2Hz delta beat
+// Delta waves = deep slow-wave sleep (N3). Gentle brown noise bed.
+function playDelta(c) {
+  const out=masterOut(c);
+  // Warm noise bed
+  const lp=c.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=300;
+  const bg=c.createGain(); bg.gain.value=.10;
+  lp.connect(bg); bg.connect(out);
+  loop(c, brownBuf(c,12), lp, 1.0);
+  // Binaural pair
+  const merger=c.createChannelMerger(2); merger.connect(out);
+  [
+    {f:100, ch:0}, {f:102, ch:1}
+  ].forEach(({f,ch}) => {
+    const o=c.createOscillator(); o.type='sine'; o.frequency.value=f;
+    const g=c.createGain(); g.gain.value=.08;
+    o.connect(g); g.connect(merger,0,ch); o.start(); S.oscs.push(o);
+  });
+}
+
+// 4. THETA BINAURAL 6 Hz — L:200Hz R:206Hz → brain creates 6Hz theta
+// Theta = sleep onset, meditation, drowsiness. Pink noise bed.
+function playTheta(c) {
+  const out=masterOut(c);
+  const lp=c.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=700;
+  const bg=c.createGain(); bg.gain.value=.09;
+  lp.connect(bg); bg.connect(out);
+  loop(c, pinkBuf(c,12), lp, 1.0);
+  const merger=c.createChannelMerger(2); merger.connect(out);
+  [
+    {f:200, ch:0}, {f:206, ch:1}
+  ].forEach(({f,ch}) => {
+    const o=c.createOscillator(); o.type='sine'; o.frequency.value=f;
+    const g=c.createGain(); g.gain.value=.08;
+    o.connect(g); g.connect(merger,0,ch); o.start(); S.oscs.push(o);
+  });
+}
+
+// 5. 432 Hz HARMONIC RESONANCE — pure sine stack with ultra-slow wobble
+// Reduces cortisol, very gentle, no noise component.
+function play432(c) {
+  const out=masterOut(c);
+  const lp=c.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=180;
+  const bg=c.createGain(); bg.gain.value=.04;
+  lp.connect(bg); bg.connect(out);
+  loop(c, brownBuf(c,10), lp, 1.0);
+  [
+    {f:216, a:.07, lfo:.038},
+    {f:432, a:.11, lfo:.047},
+    {f:648, a:.05, lfo:.031},
+    {f:864, a:.025,lfo:.025},
+  ].forEach(({f,a,lfo:lfoHz}) => osc(c, f, 'sine', out, a, lfoHz, f*.002));
+}
+
+// 6. COSMOS — sub-bass planetary drones breathing independently
+// 36, 54, 72, 108 Hz — primordial resonances. All high frequencies removed.
+// The silence of deep space.
+function playCosmos(c) {
+  const out=masterOut(c);
+  const lp=c.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=140;
+  const bg=c.createGain(); bg.gain.value=.16;
+  lp.connect(bg); bg.connect(out);
+  loop(c, brownBuf(c,14), lp, 1.0);
+  [
+    {f:36,  a:.055, lfoHz:.027, d:.030, phase:0 },
+    {f:54,  a:.040, lfoHz:.037, d:.020, phase:5 },
+    {f:72,  a:.028, lfoHz:.019, d:.014, phase:11},
+    {f:108, a:.018, lfoHz:.052, d:.009, phase:7 },
+  ].forEach(({f,a,lfoHz,d,phase}) => oscAmplitude(c, f, out, a, lfoHz, d, phase));
+}
+
+// ── SOUND BUTTON EVENTS ──
+document.querySelectorAll('.sbtn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const type = btn.dataset.sound;
+    if (S.sound === type) { stopAllSound(); return; }
+    stopAllSound();
+    btn.classList.add('on');
+    S.sound = type;
+    const c = ctx();
+    ({pink:playPink, brown:playBrown, delta:playDelta,
+      theta:playTheta, '432hz':play432, cosmos:playCosmos})[type]?.(c);
+  });
+});
+
+document.getElementById('volume').addEventListener('input', e => {
+  S.volume = +e.target.value;
+  document.getElementById('vol-val').textContent = S.volume+'%';
+  const t = S.volume/100*.72;
+  S.gainNodes.forEach(g => { try{g.gain.setTargetAtTime(t,ctx().currentTime,.1);}catch(e){} });
+});
+
+// ── FULLSCREEN ──
+document.getElementById('btn-fs').addEventListener('click', () => {
+  !document.fullscreenElement
+    ? document.documentElement.requestFullscreen().catch(()=>{})
+    : document.exitFullscreen().catch(()=>{});
+});
+document.addEventListener('fullscreenchange', () => {
+  const on = !!document.fullscreenElement;
+  document.getElementById('btn-fs').textContent = on ? '✕' : '⛶';
+  document.getElementById('btn-fs').classList.toggle('on', on);
+});
+
+// ── WAKE LOCK ──
+document.getElementById('btn-lock').addEventListener('click', async () => {
+  if (!S.wakeLock) {
+    try {
+      S.wakeLock = await navigator.wakeLock.request('screen');
+      document.getElementById('btn-lock').textContent='🔒';
+      document.getElementById('btn-lock').classList.add('on');
+      S.wakeLock.addEventListener('release', () => {
+        S.wakeLock=null;
+        document.getElementById('btn-lock').textContent='🔓';
+        document.getElementById('btn-lock').classList.remove('on');
+      });
+    } catch(e) { alert('Wake Lock requiere HTTPS.\nInstala como PWA desde GitHub Pages.'); }
+  } else await S.wakeLock.release();
+});
+
+// ── HIDE/SHOW UI ──
+const overlay = document.getElementById('overlay');
+const tapzone = document.getElementById('tapzone');
+const hint    = document.getElementById('hint');
+
+function showUI(){ S.uiVisible=true; overlay.classList.remove('hidden'); tapzone.classList.remove('active'); hint.style.opacity='0'; }
+function hideUI(){ S.uiVisible=false; overlay.classList.add('hidden'); tapzone.classList.add('active'); hint.style.opacity='1'; }
+
+document.getElementById('btn-hide').addEventListener('click', hideUI);
+tapzone.addEventListener('click', showUI);
+
+let lastTap=0;
+document.addEventListener('pointerdown', e => {
+  if(!S.uiVisible) return;
+  if(!e.target.closest('#overlay')){
+    const now=Date.now();
+    if(now-lastTap<350) hideUI();
+    lastTap=now;
+  }
+});
+
+// ── SERVICE WORKER ──
+if('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(()=>{});
+
+// ── INIT ──
+applyLight();
+</script>
+</body>
+</html>

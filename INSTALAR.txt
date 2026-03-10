@@ -1,0 +1,53 @@
+═══════════════════════════════════════
+   LUZ DE SUEÑO — Guía de Instalación
+═══════════════════════════════════════
+
+OPCIÓN 1: PWA EN TABLET ANDROID (Recomendado)
+──────────────────────────────────────────────
+Para usarla como app nativa con icono en el escritorio:
+
+1. Extrae esta carpeta (luz-sueno-pwa/) en tu tablet o súbela
+   a un servidor web (GitHub Pages, Netlify, etc.)
+
+2. USANDO GITHUB PAGES (gratis, más fácil):
+   a. Ve a github.com → New repository → "luz-sueno" → Public
+   b. Sube todos los archivos de esta carpeta
+   c. Settings → Pages → Source: main branch → Save
+   d. Tu app estará en: https://TU_USUARIO.github.io/luz-sueno/
+
+3. Abre la URL en Chrome en tu tablet
+4. Toca los 3 puntos (⋮) → "Añadir a pantalla de inicio"
+5. Confirma → ¡Ya tienes el icono como app nativa!
+6. Se abre en pantalla completa sin barra de Chrome
+7. Funciona sin internet (modo offline gracias al Service Worker)
+
+─────────────────────────────────────────────────
+OPCIÓN 2: SERVIDOR LOCAL EN EL MISMO TABLET
+─────────────────────────────────────────────────
+Si tienes la app "Simple HTTP Server" o similar:
+
+1. Copia la carpeta luz-sueno-pwa/ al almacenamiento del tablet
+2. Abre Simple HTTP Server → apunta a esa carpeta
+3. Inicia en puerto 8080
+4. Abre Chrome → http://localhost:8080
+5. Instala como PWA (paso 4 de arriba)
+
+─────────────────────────────────────────────────
+OPCIÓN 3: VIA CABLE / ADB (usuarios avanzados)
+─────────────────────────────────────────────────
+adb push luz-sueno-pwa/ /sdcard/luz-sueno/
+
+─────────────────────────────────────────────────
+NOTAS IMPORTANTES
+─────────────────────────────────────────────────
+• Wake Lock (pantalla siempre encendida): requiere HTTPS
+  → Funciona con GitHub Pages o cualquier servidor con SSL
+  → NO funciona en HTTP local (pero el resto sí)
+
+• Pantalla completa: funciona al instalar como PWA
+  (el botón ⛶ también sirve desde el navegador)
+
+• Sonidos: se generan en tiempo real, no necesitan
+  descargar archivos de audio
+
+═══════════════════════════════════════════════
