@@ -4,13 +4,35 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Luz de Sueño</title>
-<link rel="manifest" href="manifest.json">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
-<meta name="apple-mobile-web-app-title" content="Luz Sueño">
-<meta name="theme-color" content="#000000">
+<meta name="apple-mobile-web-app-title" content="Luz Sueno">
+<meta name="theme-color" content="#C8180A">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
+<script>
+(function(){
+  const p = location.pathname.replace(/\/[^\/]*$/, '/');
+  const m = {
+    name:"Luz de Sueno", short_name:"Luz Sueno",
+    description:"Luz roja 670nm para dormir",
+    start_url: p + "index.html",
+    scope: p,
+    display:"fullscreen", orientation:"any",
+    background_color:"#000000", theme_color:"#C8180A",
+    icons:[
+      {src:"icons/icon-192.png",sizes:"192x192",type:"image/png",purpose:"any"},
+      {src:"icons/icon-192.png",sizes:"192x192",type:"image/png",purpose:"maskable"},
+      {src:"icons/icon-512.png",sizes:"512x512",type:"image/png",purpose:"any"},
+      {src:"icons/icon-512.png",sizes:"512x512",type:"image/png",purpose:"maskable"}
+    ]
+  };
+  const b = new Blob([JSON.stringify(m)],{type:'application/manifest+json'});
+  const l = document.createElement('link');
+  l.rel='manifest'; l.href=URL.createObjectURL(b);
+  document.currentScript.parentNode.appendChild(l);
+})();
+</script>
 <style>
 *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
 
